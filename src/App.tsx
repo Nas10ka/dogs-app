@@ -1,122 +1,109 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react';
+
+import { getRandomDogs } from './api/dogs';
+import { DogGallery } from './components/DogGallery';
+import { FavoritesList } from './components/FavoritesList';
+import { MainDog } from './components/MainDog';
+
+import type { Dog } from './types/dog';
+
+import './styles/App.scss';
+
+const GALLERY_SIZE = 10;
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [dogs, setDogs] = useState<Dog[]>([]);
+  const [selectedDog, setSelectedDog] = useState<Dog | null>(null);
+  const [favorites, setFavorites] = useState<Dog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const loadDogs = async () => {
+      try {
+        const [mainDog, ...galleryDogs] = await getRandomDogs(
+          GALLERY_SIZE + 1,
+        );
+
+        if (!mainDog) {
+          throw new Error('No dogs returned');
+        }
+
+        setSelectedDog(mainDog);
+        setDogs(galleryDogs);
+      } catch {
+        setError('Could not load dogs. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadDogs();
+  }, []);
+
+  const addFavorite = (dog: Dog) => {
+    setFavorites((current) => {
+      const alreadyAdded = current.some(
+        (favorite) => favorite.imageUrl === dog.imageUrl,
+      );
+
+      return alreadyAdded ? current : [...current, dog];
+    });
+  };
+
+  const removeFavorite = (dog: Dog) => {
+    setFavorites((current) =>
+      current.filter(
+        (favorite) => favorite.imageUrl !== dog.imageUrl,
+      ),
+    );
+  };
+
+  if (isLoading) {
+    return <p className="status-message">Loading dogs...</p>;
+  }
+
+  if (error || !selectedDog) {
+    return (
+      <p className="status-message status-message--error">
+        {error || 'Could not load dogs.'}
+      </p>
+    );
+  }
+
+  const isFavorite = favorites.some(
+    (dog) => dog.imageUrl === selectedDog.imageUrl,
+  );
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app">
+      <header className="app__header">
+        <h1 className="app__title">Dog Viewer</h1>
+      </header>
 
-      <div className="ticks"></div>
+      <main className="app__layout">
+        <div className="app__content">
+          <MainDog
+            dog={selectedDog}
+            isFavorite={isFavorite}
+            onAddFavorite={addFavorite}
+          />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          <DogGallery
+            dogs={dogs}
+            selectedDog={selectedDog}
+            onSelect={setSelectedDog}
+          />
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <FavoritesList
+          favorites={favorites}
+          onSelect={setSelectedDog}
+          onRemove={removeFavorite}
+        />
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
