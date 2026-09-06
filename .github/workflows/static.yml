@@ -2,18 +2,16 @@ name: Deploy Dogs Viewer App
 
 on:
   push:
-    branches: ["main"] # Спрацьовуватиме при кожному пуші в main
-
-  # Дозволяє запускати workflow вручну зі вкладки Actions
+    branches: ["main"]
+  
   workflow_dispatch:
 
-# Встановлюємо дозволи для GITHUB_TOKEN
+
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Дозволяємо лише одне одночасне розгортання
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -46,7 +44,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Вказуємо папку, яку згенерував Vite (для React це 'dist')
           path: './dist'
 
       - name: Deploy to GitHub Pages
